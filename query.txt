@@ -1,0 +1,123 @@
+db.createCollection("vendors")
+db.vendors.insertMany([{
+   "_id": 1,
+   "name": "Azim",
+   "age": 25,
+   "city" : "Bangalore"
+   },
+  {
+   "_id": 2,
+   "name": "Mukesh",
+   "age": 30,
+   "city" : "Mumbai"
+  },
+ { 
+   "_id": 3,
+   "name": "Gautam",
+   "age": 35,
+   "city" : "Pune"
+ }])
+
+ db.createCollection("sales")
+
+ db.sales.insertMany([{
+    "_id": 1,
+    "user_id": 1,
+    "item": "books",
+    "selling_price": 100,
+    "profit" : 8
+},
+{
+    "_id": 2,
+    "user_id": 1,
+    "item": "pens",
+    "selling_price": 50,
+    "profit" : 5
+},
+{
+    "_id": 3,
+    "user_id": 2,
+    "item": "books",
+    "selling_price": 150,
+    "profit" : 12
+},
+{
+    "_id": 4,
+    "user_id": 2,
+    "item": "pens",
+    "selling_price": 60,
+    "profit" : 6
+},
+{
+    "_id": 5,
+    "user_id": 3,
+    "item": "books",
+    "selling_price": 200,
+    "profit" : 16
+},
+{
+    "_id": 6,
+    "user_id": 3,
+    "item": "pens",
+    "selling_price": 70,
+    "profit" : 7
+}])
+
+db.sales.createIndex({"user_id":1})
+
+db.vendors.aggregate([
+    {
+        $lookup:{
+            from:"sales",
+            localField:"_id",
+            foreignField:"user_id",
+            as:"sales"
+        }
+    },
+    {
+       $project:{
+        _id:1,
+        name:1,
+        city:1,
+        sales:{
+            $map:
+            {
+                input:"$sales",
+                as:"sale",
+                in:{_id:"$sale._id",item:"$sale.item",profit:"$sale.profit"}
+            }
+            
+        }
+       } 
+    }
+])
+
+
+db.sales.aggregate({
+    {
+        $group:
+        {
+            _id:"$user_id",
+            total_sales:{$sum:1},
+            total_profit:{$sum:"$profit"}
+        }
+    },
+    {
+        $lookup:
+        {
+            from:"vendors",
+            localField:"_id",
+            foreignField:"_id",
+            as:"vendor"
+        }
+    },
+    $project:
+    {
+        _id:1,
+        total_sales:1,
+        total_profit:1
+    },
+    $sort:{total_profit:-1}
+})
+
+
